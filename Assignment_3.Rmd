@@ -83,7 +83,7 @@ summary(lm_robust(birthwgt ~ ., data = smoking_data))
 For (c), once you have your 4 dummy variables, you can create a group variable g using the paste0() function. For example, mutate(g = paste0(d1,d2,d3,d4)) . The resulting g will include all potential observed combinations of the 4 dummy variables in the data. You can then control for factor(g) in the regression model. This is much simpler than interacting all the dummy variables as we talked about in OHs today.
 For (c), to calculate the exact matching estimator, use this g grouping variable and the code from lines 76 to 97 in the TIA.R script on gauchospace. In this case, Y = birthwgt, X = g, D = tobacco. Since we observe Y1 or Y0, you can ignore line 77.
 
-**The estimated average treatment effect of smoking on birthweight using the exact matching estimator and its linear regression analogue is -224.2583 grams for the ATE and -222.589 grams for ATT.**
+**The estimated average treatment effect of smoking on birthweight using the exact matching estimator and its linear regression analogue is -224.2583 grams.**
 
 ```{r}
 # Create a new variable called "D_mage" by using "ifelse", which takes a condition, followed by what the output should be if the condition is met, followed by the output of the condition is not met.
@@ -125,27 +125,42 @@ ATT
 ```
 
 
-(d) Estimate the propensity score for maternal smoking using a logit estimator and based on the
-following specification: mother’s age, mother’s age squared, mother’s education, and indicators
-for mother’s race, and alcohol consumption. 
+(d) Estimate the propensity score for maternal smoking using a logit estimator and based on the following specification: mother’s age, mother’s age squared, mother’s education, and indicators for mother’s race, and alcohol consumption. 
 
 ```{r}
-glm(formula = , family = binomial(), smoking_data_dummy)
+# Create a 'mother's age squared' variable in the smoking_data_dummy
+smoking_data_dummy <- smoking_data_dummy %>% 
+  mutate(mage_squared = mage*mage)
 ```
 
 
+```{r}
+# Estimate the propensity score model and predict (EPS)
+ps_model <- glm(formula = tobacco ~ mage + mage_squared + meduc + D_mblack + D_alcohol, family = binomial(), data = smoking_data_dummy)
+
+summary(ps_model)
+EPS <- predict(ps_model, type = "response")
+PS_WGT <- (smoking_data_dummy$tobacco/EPS) + ((1-smoking_data_dummy$tobacco)/(1-EPS))
+```
+
+**The propensity scores are??**
+
+(e) Use the propensity score weighted regression (WLS) to estimate the effect of maternal smoking on birth weight (Lecture 7, slide 12).
 
 
+```{r}
+# COLLECT ALL RELEVANT VARIABLES IN DATAFRAME
+DF <- data.frame(years = CGL$years, collapse = CGL$collapse, DAPever = CGL$DAPever, 
+                 LME = CGL$LME, genus = CGL$genus, species = CGL$species, EPS, PS_WGT)
+```
 
-
-
-
-
-
-
-
-(e) Use the propensity score weighted regression (WLS) to estimate the effect of maternal
-smoking on birth weight (Lecture 7, slide 12).
+```{r}
+# propensity score weighted regression (WLS)
+wls1 <- lm(formula = collapse ~ DAPever, data=DF, weights=PS_WGT)
+wls2 <- lm(formula = collapse ~ DAPever + LME + genus, data=DF, weights=PS_WGT)
+se_models = starprep(wls1, wls2, stat = c("std.error"), se_type = "HC2", alpha = 0.05)
+stargazer(wls1, wls2, se = se_models, type="text", omit = "(LME)|(genus)|(species)")
+```
 
 
 
