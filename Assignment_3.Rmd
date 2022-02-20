@@ -134,12 +134,18 @@ smoking_data_dummy <- smoking_data_dummy %>%
 # Estimate the propensity score model and predict (EPS)
 ps_model <- glm(formula = tobacco ~ mage + mage_squared + meduc + D_mblack + D_alcohol, family = binomial(), data = smoking_data_dummy)
 
+# Table of the ps_model
 summary(ps_model)
+
+# First 5 propensity scores for maternal smoking
 EPS <- predict(ps_model, type = "response")
+EPS_5 <- head(EPS, 5)
+EPS_5
+
 PS_WGT <- (smoking_data_dummy$tobacco/EPS) + ((1-smoking_data_dummy$tobacco)/(1-EPS))
 ```
 
-**The estimated propensity score for maternal smoking is **
+**The first five estimated propensity scores for maternal smoking are the outputs from 'EPS_5 <- head(EPS, 5)'.**
 
 (e) Use the propensity score weighted regression (WLS) to estimate the effect of maternal smoking on birth weight (Lecture 7, slide 12).
 
