@@ -9,9 +9,9 @@ output:
 header-includes:
   - \setlength{\parindent}{1em}
   - \usepackage{float}
---- 
+---
 
-``` {r setup, echo = FALSE, message = FALSE, warning = FALSE}
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
 
 # set default chunk options
 knitr::opts_chunk$set(fig.width = 4, fig.height = 3, 
@@ -39,7 +39,8 @@ options(scipen=10) # not scientific notation
 
 ```
 
-Load the SMOKING_EDS241.csv data 
+Load the SMOKING_EDS241.csv data
+
 ```{r}
 # load data 
 smoking_data <- read.csv("SMOKING_EDS241.csv")
@@ -48,14 +49,13 @@ smoking_data <- read.csv("SMOKING_EDS241.csv")
 
 \noindent (a) What is the unadjusted mean difference in birth weight of infants with smoking and nonsmoking mothers? Under what assumption does this correspond to the average treatment effect of maternal smoking during pregnancy on infant birth weight? Provide some simple empirical evidence for or against this hypothesis.
 
-For the last part of (a), I would regress your favorite covariate on the smoking status of mothers. For example, think of regressing meduc ~ tobacco. Is the mean difference in the education level of smoking and non-smoking mothers statistically different from zero? What does that say about the required assumption to interpret the unadjusted mean difference as causal? Let me know if this tip is still too cryptic.
+For the last part of (a), I would regress your favorite covariate on the smoking status of mothers. For example, think of regressing meduc \~ tobacco. Is the mean difference in the education level of smoking and non-smoking mothers statistically different from zero? What does that say about the required assumption to interpret the unadjusted mean difference as causal? Let me know if this tip is still too cryptic.
 
 **The unadjusted mean difference in birth weight of infants with smoking and nonsmoking mothers is -244.5 grams.**
 
 **Under the "treatment ignorability" assumption, this corresponds to the average treatment effect of maternal smoking during pregnancy on infant birth weight**
 
-**When regressing the mother's education level (meduc) on the indicator for maternal smoking (tobacco), the mean difference in the education level of smoking and non-smoking mothers is -1.318 grams which is statistically significant becuase the p-value < 2.2e-16, which is much lower than the 5% significance level. Therefore, we can interpret the unadjusted mean difference as causal.**
-
+**When regressing the mother's education level (meduc) on the indicator for maternal smoking (tobacco), the mean difference in the education level of smoking and non-smoking mothers is -1.318 units, which is statistically significant because the p-value (< 2.2e-16) is much lower than the 5% significance level. Therefore, we cannot interpret the unadjusted mean difference as causal because maternal smoking is not randomly assigned due to a mother's education level being statistically different from zero on the maternal smoking treatment variable.**
 
 ```{r}
 # Regress birth weight of infant in grams (birthwgt) on the indicator for maternal smoking (tobacco)
@@ -71,17 +71,15 @@ summary(lm_robust(meduc ~ tobacco, data = smoking_data))
 
 On (b), simply include all of the covariates linearly. We are making a functional form assumption on the linear impact of covariates on the outcome.
 
-**The estimated coefficient on tobacco is -228.073 grams and the standard error is 4.2768.**
+**The estimated coefficient on tobacco is -228.073 grams and the standard error is 4.2768 grams.**
 
 ```{r}
 summary(lm_robust(birthwgt ~ ., data = smoking_data))
 ```
 
+\noindent (c) Use the exact matching estimator to estimate the effect of maternal smoking on birth weight. For simplicity, consider the following covariates in your matching estimator: create a 0-1 indicator for mother's age (=1 if mage\>=34), and a 0-1 indicator for mother's education (1 if meduc\>=16), mother's race (mblack), and alcohol consumption indicator (alcohol). These 4 covariates will create 2*2*2\*2 = 16 cells. Report the estimated average treatment effect of smoking on birthweight using the exact matching estimator and its linear regression analogue (Lecture 6, slides 12-14).
 
-\noindent (c) Use the exact matching estimator to estimate the effect of maternal smoking on birth weight. For simplicity, consider the following covariates in your matching estimator: create a 0-1 indicator for mother's age (=1 if mage>=34), and a 0-1 indicator for mother's education (1 if meduc>=16), mother's race (mblack), and alcohol consumption indicator (alcohol). These 4 covariates will create 2*2*2*2 = 16 cells. Report the estimated average treatment effect of smoking on birthweight using the exact matching estimator and its linear regression analogue (Lecture 6, slides 12-14).
-
-For (c), once you have your 4 dummy variables, you can create a group variable g using the paste0() function. For example, mutate(g = paste0(d1,d2,d3,d4)) . The resulting g will include all potential observed combinations of the 4 dummy variables in the data. You can then control for factor(g) in the regression model. This is much simpler than interacting all the dummy variables as we talked about in OHs today.
-For (c), to calculate the exact matching estimator, use this g grouping variable and the code from lines 76 to 97 in the TIA.R script on gauchospace. In this case, Y = birthwgt, X = g, D = tobacco. Since we observe Y1 or Y0, you can ignore line 77.
+For (c), once you have your 4 dummy variables, you can create a group variable g using the paste0() function. For example, mutate(g = paste0(d1,d2,d3,d4)) . The resulting g will include all potential observed combinations of the 4 dummy variables in the data. You can then control for factor(g) in the regression model. This is much simpler than interacting all the dummy variables as we talked about in OHs today. For (c), to calculate the exact matching estimator, use this g grouping variable and the code from lines 76 to 97 in the TIA.R script on gauchospace. In this case, Y = birthwgt, X = g, D = tobacco. Since we observe Y1 or Y0, you can ignore line 77.
 
 **The estimated average treatment effect of smoking on birthweight using the exact matching estimator and its linear regression analogue is -224.2583 grams.**
 
@@ -124,15 +122,13 @@ ATT
 
 ```
 
-
-(d) Estimate the propensity score for maternal smoking using a logit estimator and based on the following specification: mother’s age, mother’s age squared, mother’s education, and indicators for mother’s race, and alcohol consumption. 
+(d) Estimate the propensity score for maternal smoking using a logit estimator and based on the following specification: mother's age, mother's age squared, mother's education, and indicators for mother's race, and alcohol consumption.
 
 ```{r}
 # Create a 'mother's age squared' variable in the smoking_data_dummy
 smoking_data_dummy <- smoking_data_dummy %>% 
   mutate(mage_squared = mage*mage)
 ```
-
 
 ```{r}
 # Estimate the propensity score model and predict (EPS)
@@ -143,54 +139,13 @@ EPS <- predict(ps_model, type = "response")
 PS_WGT <- (smoking_data_dummy$tobacco/EPS) + ((1-smoking_data_dummy$tobacco)/(1-EPS))
 ```
 
-**The propensity scores are??**
+**The estimated propensity score for maternal smoking is **
 
 (e) Use the propensity score weighted regression (WLS) to estimate the effect of maternal smoking on birth weight (Lecture 7, slide 12).
 
-
-```{r}
-# COLLECT ALL RELEVANT VARIABLES IN DATAFRAME
-DF <- data.frame(years = CGL$years, collapse = CGL$collapse, DAPever = CGL$DAPever, 
-                 LME = CGL$LME, genus = CGL$genus, species = CGL$species, EPS, PS_WGT)
-```
+**The estimated effect of maternal smoking on birth weight is -225.475 grams using the propensity score weighted regression (WLS).**
 
 ```{r}
 # propensity score weighted regression (WLS)
-wls1 <- lm(formula = collapse ~ DAPever, data=DF, weights=PS_WGT)
-wls2 <- lm(formula = collapse ~ DAPever + LME + genus, data=DF, weights=PS_WGT)
-se_models = starprep(wls1, wls2, stat = c("std.error"), se_type = "HC2", alpha = 0.05)
-stargazer(wls1, wls2, se = se_models, type="text", omit = "(LME)|(genus)|(species)")
+summary(lm(formula = birthwgt ~ tobacco, data = smoking_data_dummy, weights = PS_WGT))
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
